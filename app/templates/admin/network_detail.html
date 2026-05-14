@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block title %}{{ network.name }}{% endblock %}
+{% block content %}
+  <h1>{{ network.name }}</h1>
+  {% if error %}<p class="error">{{ error }}</p>{% endif %}
+
+  <article>
+    <h2>Добавить ресурс</h2>
+    <form class="compact-form" action="/admin/networks/{{ network.id }}/resources" method="post">
+      <label>
+        Screen name
+        <input name="screen_name" placeholder="kuzminki_live" required>
+      </label>
+      <label>
+        Название
+        <input name="display_name">
+      </label>
+      <label>
+        Тип
+        <select name="resource_type">
+          {% for type in resource_types %}
+            <option value="{{ type.value }}">{{ type.value }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label>
+        Категория для other
+        <input name="category_label">
+      </label>
+      <label class="full">
+        <input type="checkbox" name="is_active" checked>
+        Активен
+      </label>
+      <div class="full"><button type="submit">Добавить</button></div>
+    </form>
+  </article>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Название</th>
+        <th>Screen name</th>
+        <th>Owner ID</th>
+        <th>Тип</th>
+        <th>Активен</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for resource in network.resources %}
+        <tr>
+          <td>{{ resource.display_name }}</td>
+          <td>{{ resource.vk_screen_name }}</td>
+          <td>{{ resource.vk_owner_id }}</td>
+          <td>{{ resource.category_name }}</td>
+          <td>{{ "да" if resource.is_active else "нет" }}</td>
+          <td>
+            <form action="/admin/resources/{{ resource.id }}/delete" method="post">
+              <button type="submit" class="secondary">Удалить</button>
+            </form>
+          </td>
+        </tr>
+      {% else %}
+        <tr><td colspan="6" class="muted">Ресурсов пока нет</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% endblock %}

@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}Сетки{% endblock %}
+{% block content %}
+  <h1>Сетки</h1>
+  <table>
+    <thead><tr><th>Название</th><th></th></tr></thead>
+    <tbody>
+      {% for network in networks %}
+        <tr>
+          <td>{{ network.name }}</td>
+          <td><a href="/admin/networks/{{ network.id }}">Ресурсы</a></td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% endblock %}

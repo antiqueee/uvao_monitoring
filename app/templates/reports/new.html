@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}Новый отчёт{% endblock %}
+{% block content %}
+  <h1>Новый отчёт</h1>
+  {% if error %}<p class="error">{{ error }}</p>{% endif %}
+  <form action="/reports" method="post">
+    <label>
+      Ссылка на первоисточник
+      <input name="source_url" value="{{ source_url or '' }}" placeholder="https://vk.com/wall-12345_67890" required>
+    </label>
+    <label>
+      Сетка
+      <select name="network_id" required>
+        {% for network in networks %}
+          <option value="{{ network.id }}">{{ network.name }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>
+      Наименование инфоповода
+      <input name="infopovod_title" value="{{ infopovod_title or '' }}" maxlength="512" required>
+    </label>
+    <button type="submit">Сформировать</button>
+  </form>
+{% endblock %}

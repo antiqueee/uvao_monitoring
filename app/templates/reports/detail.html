@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block title %}Отчёт{% endblock %}
+{% block content %}
+  <section class="toolbar">
+    <div>
+      <h1>{{ report.infopovod_title }}</h1>
+      <p class="muted">{{ report.network.name }} · {{ report.created_at.strftime("%d.%m.%Y %H:%M") }}</p>
+      <p><a href="{{ report.source_url }}" target="_blank" rel="noreferrer">Первоисточник</a></p>
+    </div>
+    {% if report.status.value == "done" %}
+      <a href="/reports/{{ report.id }}/export.xlsx" role="button">Скачать Excel</a>
+    {% endif %}
+  </section>
+
+  {% if report.status.value in ["pending", "running"] %}
+    <article hx-get="/reports/{{ report.id }}/status" hx-trigger="every 2s" hx-swap="none">
+      <h2>Сбор отчёта</h2>
+      <p class="muted">Статус: {{ report.status.value }}</p>
+      <script>
+        document.body.addEventListener("htmx:afterRequest", function (event) {
+          try {
+            const data = JSON.parse(event.detail.xhr.responseText);
+            if (data.status === "done" || data.status === "failed") window.location.reload();
+          } catch (_) {}
+        });
+      </script>
+    </article>
+  {% elif report.status.value == "failed" %}
+    <article>
+      <h2>Ошибка</h2>
+      <p class="error">{{ report.error_message }}</p>
+    </article>
+  {% else %}
+    <table>
+      <thead>
+        <tr>
+          <th>№</th>
+          <th>Дата</th>
+          <th>Категория</th>
+          <th>Канал/сообщество</th>
+          <th>Публикация</th>
+          <th>Подписчики</th>
+          <th>Просмотры</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in report.rows %}
+          <tr>
+            <td>{{ row.row_number }}</td>
+            <td>{{ row.repost_date.strftime("%d.%m.%Y") }}</td>
+            <td>{{ row.resource.category_name }}</td>
+            <td>{{ row.resource.display_name }}</td>
+            <td><a href="{{ row.repost_url }}" target="_blank" rel="noreferrer">{{ row.repost_url }}</a></td>
+            <td>{{ row.followers_count }}</td>
+            <td>{{ row.views_count or "" }}</td>
+          </tr>
+        {% else %}
+          <tr><td colspan="7" class="muted">Репосты не найдены</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% endif %}
+{% endblock %}

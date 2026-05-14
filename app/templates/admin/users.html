@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block title %}Пользователи{% endblock %}
+{% block content %}
+  <h1>Пользователи</h1>
+  {% if error %}<p class="error">{{ error }}</p>{% endif %}
+  <article>
+    <h2>Создать пользователя</h2>
+    <form class="compact-form" action="/admin/users" method="post">
+      <label>
+        Логин
+        <input name="login" required>
+      </label>
+      <label>
+        Пароль
+        <input name="password" type="password" required>
+      </label>
+      <label>
+        Имя
+        <input name="display_name" required>
+      </label>
+      <label>
+        Роль
+        <select name="role">
+          <option value="user">user</option>
+          <option value="admin">admin</option>
+        </select>
+      </label>
+      <label class="full">
+        Сетка для user
+        <select name="network_id">
+          {% for network in networks %}
+            <option value="{{ network.id }}">{{ network.name }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <div class="full"><button type="submit">Создать</button></div>
+    </form>
+  </article>
+  <table>
+    <thead>
+      <tr>
+        <th>Логин</th>
+        <th>Имя</th>
+        <th>Роль</th>
+        <th>Сетка</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for item in users %}
+        <tr>
+          <td>{{ item.login }}</td>
+          <td>{{ item.display_name }}</td>
+          <td>{{ item.role.value }}</td>
+          <td>{{ item.network.name if item.network else "все" }}</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% endblock %}

@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}Отчёты{% endblock %}
+{% block content %}
+  <section class="toolbar">
+    <div>
+      <h1>Отчёты</h1>
+      {% if user.network %}<p class="muted">Доступ: {{ user.network.name }}</p>{% endif %}
+    </div>
+    <a href="/reports/new" role="button">Новый отчёт</a>
+  </section>
+  <table>
+    <thead>
+      <tr>
+        <th>Дата</th>
+        <th>Сетка</th>
+        <th>Инфоповод</th>
+        <th>Статус</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for report in reports %}
+        <tr>
+          <td>{{ report.created_at.strftime("%d.%m.%Y %H:%M") }}</td>
+          <td>{{ report.network.name }}</td>
+          <td>{{ report.infopovod_title }}</td>
+          <td><span class="status">{{ report.status.value }}</span></td>
+          <td><a href="/reports/{{ report.id }}">Открыть</a></td>
+        </tr>
+      {% else %}
+        <tr><td colspan="5" class="muted">Отчётов пока нет</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% endblock %}
