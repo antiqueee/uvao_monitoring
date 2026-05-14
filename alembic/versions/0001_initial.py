@@ -17,11 +17,18 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    user_role = postgresql.ENUM("admin", "user", name="user_role")
+    user_role = postgresql.ENUM("admin", "user", name="user_role", create_type=False)
     resource_type = postgresql.ENUM(
-        "okrug_community", "district_community", "lom_personal", "other", name="resource_type"
+        "okrug_community",
+        "district_community",
+        "lom_personal",
+        "other",
+        name="resource_type",
+        create_type=False,
     )
-    report_status = postgresql.ENUM("pending", "running", "done", "failed", name="report_status")
+    report_status = postgresql.ENUM(
+        "pending", "running", "done", "failed", name="report_status", create_type=False
+    )
     user_role.create(op.get_bind(), checkfirst=True)
     resource_type.create(op.get_bind(), checkfirst=True)
     report_status.create(op.get_bind(), checkfirst=True)
