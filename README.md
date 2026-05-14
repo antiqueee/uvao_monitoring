@@ -20,6 +20,15 @@ docker compose exec web python scripts/seed.py
 
 4. Открыть `http://localhost:8000`.
 
+## Production на сервере
+
+Production-compose не публикует PostgreSQL наружу и отдаёт приложение только на `127.0.0.1:8001`.
+Внешний HTTPS должен проксироваться через существующий Caddy.
+
+```bash
+docker compose -f docker-compose.prod.yml up -d --build
+```
+
 ## Аккаунты после сидера
 
 Пароль для всех первичных аккаунтов берётся из `BOOTSTRAP_ADMIN_PASSWORD`.
