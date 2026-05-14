@@ -112,7 +112,7 @@ def read_items(
 async def resolve_owner_id(client: VkClient, screen_name: str) -> int:
     resolved = await client.resolve_screen_name(screen_name)
     object_id = int(resolved["object_id"])
-    return -object_id if resolved["type"] == "group" else object_id
+    return -object_id if resolved["type"] in {"group", "page"} else object_id
 
 
 async def import_resources(

@@ -72,7 +72,7 @@ async def add_resource(
     try:
         resolved = await VkClient().resolve_screen_name(clean_screen_name)
         object_id = int(resolved["object_id"])
-        vk_owner_id = -object_id if resolved["type"] == "group" else object_id
+        vk_owner_id = -object_id if resolved["type"] in {"group", "page"} else object_id
     except (VkApiError, KeyError, ValueError) as exc:
         return await _network_form_with_error(request, db, user, network_id, f"Не удалось проверить ВК: {exc}")
 

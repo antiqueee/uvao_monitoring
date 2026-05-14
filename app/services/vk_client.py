@@ -56,9 +56,13 @@ class VkClient:
 
     async def wall_get_by_id(self, owner_id: int, post_id: int) -> dict[str, Any]:
         response = await self.call("wall.getById", {"posts": f"{owner_id}_{post_id}"})
-        if not response:
+        if isinstance(response, dict):
+            items = response.get("items", [])
+        else:
+            items = response
+        if not items:
             raise VkApiError(15, "Пост первоисточника не найден или недоступен")
-        return response[0]
+        return items[0]
 
     async def wall_get(self, owner_id: int, count: int = 100) -> list[dict[str, Any]]:
         response = await self.call("wall.get", {"owner_id": owner_id, "count": count})
