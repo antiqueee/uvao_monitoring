@@ -25,7 +25,9 @@
       <label class="label" for="resource_type">Тип</label>
       <select class="input" id="resource_type" name="resource_type">
         {% for type in resource_types %}
-          <option value="{{ type.value }}">{{ type.value }}</option>
+          <option value="{{ type.value }}">
+            {% if type.value == "okrug_community" %}окружное сообщество{% elif type.value == "district_community" %}районное сообщество{% elif type.value == "lom_personal" %}личная страница ЛОМа{% else %}иной ресурс{% endif %}
+          </option>
         {% endfor %}
       </select>
     </div>

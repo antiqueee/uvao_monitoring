@@ -47,5 +47,5 @@ class Resource(Base):
             ResourceType.lom_personal: "личная страница ЛОМа",
         }
         if self.resource_type == ResourceType.other:
-            return self.category_label or "другое"
+            return self.category_label or "иной ресурс"
         return labels[self.resource_type]

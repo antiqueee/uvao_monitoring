@@ -22,7 +22,7 @@ SHEET_MAP = {
         "name_col": 5,
         "vk_col": 8,
         "resource_type": ResourceType.other,
-        "category_label": "собственный неофициальный ресурс",
+        "category_label": "иной ресурс",
     },
     "Личные страницы мун. депутатов": {
         "name_col": 5,
