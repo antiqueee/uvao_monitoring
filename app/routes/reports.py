@@ -1,5 +1,6 @@
 import uuid
 from datetime import datetime
+from urllib.parse import quote
 from typing import Annotated
 
 from fastapi import APIRouter, BackgroundTasks, Depends, Form, HTTPException, Request
@@ -17,6 +18,13 @@ from app.services.url_parser import InvalidVkPostUrl, parse_vk_post_url
 
 router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
+
+
+def export_content_disposition(filename: str) -> str:
+    ascii_filename = filename.encode("ascii", "ignore").decode("ascii").replace('"', "")
+    ascii_filename = ascii_filename or "report.xlsx"
+    quoted_filename = quote(filename)
+    return f"attachment; filename=\"{ascii_filename}\"; filename*=UTF-8''{quoted_filename}"
 
 
 @router.get("/", response_class=HTMLResponse)
@@ -149,5 +157,5 @@ def export_report(
     return StreamingResponse(
         output,
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+        headers={"Content-Disposition": export_content_disposition(filename)},
     )
