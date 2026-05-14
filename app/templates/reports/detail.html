@@ -1,21 +1,14 @@
 {% extends "base.html" %}
 {% block title %}Отчёт{% endblock %}
 {% block content %}
-  <section class="toolbar">
-    <div>
-      <h1>{{ report.infopovod_title }}</h1>
-      <p class="muted">{{ report.network.name }} · {{ report.created_at.strftime("%d.%m.%Y %H:%M") }}</p>
-      <p><a href="{{ report.source_url }}" target="_blank" rel="noreferrer">Первоисточник</a></p>
-    </div>
-    {% if report.status.value == "done" %}
-      <a href="/reports/{{ report.id }}/export.xlsx" role="button">Скачать Excel</a>
-    {% endif %}
-  </section>
+  <a class="breadcrumb" href="/">← К списку отчётов</a>
 
   {% if report.status.value in ["pending", "running"] %}
-    <article hx-get="/reports/{{ report.id }}/status" hx-trigger="every 2s" hx-swap="none">
-      <h2>Сбор отчёта</h2>
-      <p class="muted">Статус: {{ report.status.value }}</p>
+    <div class="center-state" hx-get="/reports/{{ report.id }}/status" hx-trigger="every 2s" hx-swap="none">
+      <div class="spinner"></div>
+      <h1 style="font-size: 20px; margin-bottom: 6px;">Собираем данные</h1>
+      <div class="page-meta" style="margin-bottom: 24px;">Проверяем ресурсы сетки {{ report.network.name }}</div>
+      <div class="muted2">{{ report.status.value }}</div>
       <script>
         document.body.addEventListener("htmx:afterRequest", function (event) {
           try {
@@ -24,38 +17,69 @@
           } catch (_) {}
         });
       </script>
-    </article>
+    </div>
   {% elif report.status.value == "failed" %}
-    <article>
-      <h2>Ошибка</h2>
-      <p class="error">{{ report.error_message }}</p>
-    </article>
+    <div class="page-header">
+      <h1>{{ report.infopovod_title }}</h1>
+    </div>
+    <div class="page-meta">{{ report.network.name }} · {{ report.created_at.strftime("%d.%m.%Y %H:%M") }}</div>
+    <p class="error">{{ report.error_message }}</p>
   {% else %}
-    <table>
+    <div class="page-header">
+      <h1>{{ report.infopovod_title }}</h1>
+      <a class="btn" href="/reports/{{ report.id }}/export.xlsx">
+        <i class="ti ti-download" aria-hidden="true"></i>
+        Excel
+      </a>
+    </div>
+    <div class="page-meta">
+      {{ report.network.name }} · {{ report.created_at.strftime("%d.%m.%Y") }} ·
+      <a class="muted" href="{{ report.source_url }}" target="_blank" rel="noreferrer">{{ report.source_url }}</a>
+    </div>
+
+    {% set totals = namespace(views=0) %}
+    {% for row in report.rows %}
+      {% if row.views_count %}
+        {% set totals.views = totals.views + row.views_count %}
+      {% endif %}
+    {% endfor %}
+    <div class="stats">
+      <div>
+        <div class="stat-label">Ресурсов</div>
+        <div class="stat-value">{{ report.network.resources|length }}</div>
+      </div>
+      <div>
+        <div class="stat-label">Репостов</div>
+        <div class="stat-value">{{ report.rows|length }}</div>
+      </div>
+      <div>
+        <div class="stat-label">Просмотров</div>
+        <div class="stat-value">{{ totals.views }}</div>
+      </div>
+    </div>
+
+    <table class="tbl">
       <thead>
         <tr>
-          <th>№</th>
-          <th>Дата</th>
-          <th>Категория</th>
-          <th>Канал/сообщество</th>
-          <th>Публикация</th>
-          <th>Подписчики</th>
-          <th>Просмотры</th>
+          <th>Канал</th>
+          <th style="width: 110px;">Категория</th>
+          <th class="right" style="width: 110px;">Подписчики</th>
+          <th class="right" style="width: 90px;">Просмотры</th>
         </tr>
       </thead>
       <tbody>
         {% for row in report.rows %}
           <tr>
-            <td>{{ row.row_number }}</td>
-            <td>{{ row.repost_date.strftime("%d.%m.%Y") }}</td>
-            <td>{{ row.resource.category_name }}</td>
-            <td>{{ row.resource.display_name }}</td>
-            <td><a href="{{ row.repost_url }}" target="_blank" rel="noreferrer">{{ row.repost_url }}</a></td>
-            <td>{{ row.followers_count }}</td>
-            <td>{{ row.views_count or "" }}</td>
+            <td>
+              <a href="{{ row.repost_url }}" target="_blank" rel="noreferrer">{{ row.resource.display_name }}</a>
+              <div class="muted2">{{ row.repost_url }}</div>
+            </td>
+            <td><span class="category">{{ row.resource.category_name }}</span></td>
+            <td class="right">{{ row.followers_count }}</td>
+            <td class="right">{{ row.views_count or "" }}</td>
           </tr>
         {% else %}
-          <tr><td colspan="7" class="muted">Репосты не найдены</td></tr>
+          <tr><td colspan="4"><div class="empty">Репосты не найдены</div></td></tr>
         {% endfor %}
       </tbody>
     </table>

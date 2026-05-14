@@ -1,25 +1,40 @@
 {% extends "base.html" %}
 {% block title %}Новый отчёт{% endblock %}
 {% block content %}
-  <h1>Новый отчёт</h1>
+  <a class="breadcrumb" href="/">← К списку отчётов</a>
+  <h1 style="margin-bottom: 28px;">Новый отчёт</h1>
+
   {% if error %}<p class="error">{{ error }}</p>{% endif %}
-  <form action="/reports" method="post">
-    <label>
-      Ссылка на первоисточник
-      <input name="source_url" value="{{ source_url or '' }}" placeholder="https://vk.com/wall-12345_67890" required>
-    </label>
-    <label>
-      Сетка
-      <select name="network_id" required>
-        {% for network in networks %}
-          <option value="{{ network.id }}">{{ network.name }}</option>
-        {% endfor %}
-      </select>
-    </label>
-    <label>
-      Наименование инфоповода
-      <input name="infopovod_title" value="{{ infopovod_title or '' }}" maxlength="512" required>
-    </label>
-    <button type="submit">Сформировать</button>
+
+  <form class="form-narrow" action="/reports" method="post">
+    <div class="field">
+      <label class="label" for="source_url">Ссылка на первоисточник</label>
+      <input class="input" id="source_url" name="source_url" value="{{ source_url or '' }}" placeholder="https://vk.com/wall-12345_67890" required>
+      <div class="hint">Принимаются ссылки вида vk.com/wall...</div>
+    </div>
+
+    <div class="field">
+      <label class="label" for="network_id">Сетка</label>
+      {% if networks|length == 1 %}
+        <input class="input" value="{{ networks[0].name }}" disabled>
+        <input type="hidden" name="network_id" value="{{ networks[0].id }}">
+      {% else %}
+        <select class="input" id="network_id" name="network_id" required>
+          {% for network in networks %}
+            <option value="{{ network.id }}">{{ network.name }}</option>
+          {% endfor %}
+        </select>
+      {% endif %}
+    </div>
+
+    <div class="field" style="margin-bottom: 28px;">
+      <label class="label" for="infopovod_title">Наименование инфоповода</label>
+      <input class="input" id="infopovod_title" name="infopovod_title" value="{{ infopovod_title or '' }}" maxlength="512" required>
+    </div>
+
+    <div class="actions">
+      <button class="btn" type="submit">Сформировать</button>
+      <a class="btn-ghost" href="/">Отмена</a>
+    </div>
   </form>
 {% endblock %}

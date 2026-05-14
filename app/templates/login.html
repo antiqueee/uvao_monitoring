@@ -1,19 +1,22 @@
 {% extends "base.html" %}
 {% block title %}Вход{% endblock %}
-{% block content %}
-  <article style="max-width: 460px; margin: 10vh auto 0;">
-    <h1>Вход</h1>
-    {% if error %}<p class="error">{{ error }}</p>{% endif %}
-    <form action="/login" method="post">
-      <label>
-        Логин
-        <input name="login" autocomplete="username" required>
-      </label>
-      <label>
-        Пароль
-        <input name="password" type="password" autocomplete="current-password" required>
-      </label>
-      <button type="submit">Войти</button>
+{% block content_anon %}
+  <main class="login-page">
+    <form class="login-panel" action="/login" method="post">
+      <div class="login-brand">
+        <div class="login-title">Мониторинг репостов</div>
+        <div class="muted2">ЮВАО · внутренний сервис</div>
+      </div>
+      {% if error %}<p class="error">{{ error }}</p>{% endif %}
+      <div class="field">
+        <label class="label" for="login">Логин</label>
+        <input class="input" id="login" name="login" autocomplete="username" required>
+      </div>
+      <div class="field" style="margin-bottom: 24px;">
+        <label class="label" for="password">Пароль</label>
+        <input class="input" id="password" name="password" type="password" autocomplete="current-password" required>
+      </div>
+      <button class="btn" type="submit" style="width: 100%; padding: 10px;">Войти</button>
     </form>
-  </article>
+  </main>
 {% endblock %}

@@ -3,34 +3,43 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>{% block title %}Мониторинг ЮВАО{% endblock %}</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
+    <title>{% block title %}Мониторинг репостов{% endblock %}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&family=Fraunces:opsz,wght@9..144,400;9..144,500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
     <link rel="stylesheet" href="/static/styles.css">
     <script src="https://unpkg.com/htmx.org@2.0.4"></script>
   </head>
   <body>
     {% if user %}
-      <nav class="container">
-        <ul>
-          <li><strong>Мониторинг ЮВАО</strong></li>
-        </ul>
-        <ul>
-          <li><a href="/">Отчёты</a></li>
-          <li><a href="/admin/networks">Сетки</a></li>
-          {% if user.role.value == "admin" %}
-            <li><a href="/admin/users">Пользователи</a></li>
-          {% endif %}
-          <li class="muted">{{ user.display_name }}</li>
-          <li>
-            <form action="/logout" method="post">
-              <button type="submit" class="secondary">Выйти</button>
-            </form>
-          </li>
-        </ul>
-      </nav>
+      {% set path = request.url.path %}
+      <div class="app">
+        <aside class="sidebar">
+          <a class="nav-brand" href="/">репосты</a>
+          <a class="nav-item {% if not path.startswith('/admin') %}active{% endif %}" href="/">
+            <i class="ti ti-file-text" aria-hidden="true"></i>
+            Отчёты
+          </a>
+          <a class="nav-item {% if path.startswith('/admin') %}active{% endif %}" href="/admin/networks">
+            <i class="ti ti-adjustments-horizontal" aria-hidden="true"></i>
+            Админка
+          </a>
+          <div class="nav-spacer"></div>
+          <div class="nav-user">{{ user.network.name if user.network else user.login }}</div>
+          <form class="nav-form" action="/logout" method="post">
+            <button type="submit">
+              <i class="ti ti-logout" aria-hidden="true"></i>
+              Выйти
+            </button>
+          </form>
+        </aside>
+        <main class="content">
+          {% block content %}{% endblock %}
+        </main>
+      </div>
+    {% else %}
+      {% block anonymous_content %}{% block content_anon %}{% endblock %}{% endblock %}
     {% endif %}
-    <main class="container">
-      {% block content %}{% endblock %}
-    </main>
   </body>
 </html>

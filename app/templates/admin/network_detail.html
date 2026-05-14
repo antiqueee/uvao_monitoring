@@ -1,67 +1,86 @@
 {% extends "base.html" %}
 {% block title %}{{ network.name }}{% endblock %}
 {% block content %}
-  <h1>{{ network.name }}</h1>
+  <a class="breadcrumb" href="/admin/networks">← К списку сеток</a>
+  <div class="page-header" style="align-items: flex-end;">
+    <h1>{{ network.name }}</h1>
+  </div>
+  <div class="page-meta">
+    {{ network.resources|length }} ресурсов,
+    {{ network.resources|selectattr("is_active")|list|length }} активных
+  </div>
+
   {% if error %}<p class="error">{{ error }}</p>{% endif %}
 
-  <article>
-    <h2>Добавить ресурс</h2>
-    <form class="compact-form" action="/admin/networks/{{ network.id }}/resources" method="post">
-      <label>
-        Screen name
-        <input name="screen_name" placeholder="kuzminki_live" required>
-      </label>
-      <label>
-        Название
-        <input name="display_name">
-      </label>
-      <label>
-        Тип
-        <select name="resource_type">
-          {% for type in resource_types %}
-            <option value="{{ type.value }}">{{ type.value }}</option>
-          {% endfor %}
-        </select>
-      </label>
-      <label>
-        Категория для other
-        <input name="category_label">
-      </label>
-      <label class="full">
-        <input type="checkbox" name="is_active" checked>
-        Активен
-      </label>
-      <div class="full"><button type="submit">Добавить</button></div>
-    </form>
-  </article>
+  <form class="form-grid" action="/admin/networks/{{ network.id }}/resources" method="post" style="margin-bottom: 32px;">
+    <div>
+      <label class="label" for="screen_name">Screen name</label>
+      <input class="input" id="screen_name" name="screen_name" placeholder="kuzminki_live" required>
+    </div>
+    <div>
+      <label class="label" for="display_name">Название</label>
+      <input class="input" id="display_name" name="display_name">
+    </div>
+    <div>
+      <label class="label" for="resource_type">Тип</label>
+      <select class="input" id="resource_type" name="resource_type">
+        {% for type in resource_types %}
+          <option value="{{ type.value }}">{{ type.value }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div>
+      <label class="label" for="category_label">Категория для other</label>
+      <input class="input" id="category_label" name="category_label">
+    </div>
+    <label class="actions full muted2">
+      <input type="checkbox" name="is_active" checked>
+      Активен
+    </label>
+    <div class="full">
+      <button class="btn" type="submit">
+        <i class="ti ti-plus" aria-hidden="true"></i>
+        Добавить
+      </button>
+    </div>
+  </form>
 
-  <table>
+  <table class="tbl">
     <thead>
       <tr>
         <th>Название</th>
-        <th>Screen name</th>
-        <th>Owner ID</th>
-        <th>Тип</th>
-        <th>Активен</th>
-        <th></th>
+        <th style="width: 90px;">Тип</th>
+        <th style="width: 120px;">Категория</th>
+        <th style="width: 90px;">Статус</th>
+        <th style="width: 80px;"></th>
       </tr>
     </thead>
     <tbody>
       {% for resource in network.resources %}
-        <tr>
-          <td>{{ resource.display_name }}</td>
-          <td>{{ resource.vk_screen_name }}</td>
-          <td>{{ resource.vk_owner_id }}</td>
-          <td>{{ resource.category_name }}</td>
-          <td>{{ "да" if resource.is_active else "нет" }}</td>
+        <tr {% if not resource.is_active %}style="opacity: 0.5;"{% endif %}>
           <td>
+            <div>{{ resource.display_name }}</div>
+            <div class="muted2">@{{ resource.vk_screen_name }}</div>
+          </td>
+          <td class="muted">{{ "личная" if resource.vk_owner_id > 0 else "паблик" }}</td>
+          <td><span class="category">{{ resource.category_name }}</span></td>
+          <td>
+            {% if resource.is_active %}
+              <span class="status"><span class="dot status-ok"></span>активен</span>
+            {% else %}
+              <span class="status"><span class="dot status-off"></span>отключён</span>
+            {% endif %}
+          </td>
+          <td class="right">
             <form action="/admin/resources/{{ resource.id }}/delete" method="post">
-              <button type="submit" class="secondary">Удалить</button>
+              <button class="btn-ghost" type="submit" aria-label="Удалить ресурс" style="padding: 6px 10px;">
+                <i class="ti ti-dots" aria-hidden="true"></i>
+              </button>
             </form>
           </td>
         </tr>
       {% else %}
-        <tr><td colspan="6" class="muted">Ресурсов пока нет</td></tr>
+        <tr><td colspan="5"><div class="empty">Ресурсов пока нет</div></td></tr>
       {% endfor %}
     </tbody>
   </table>
