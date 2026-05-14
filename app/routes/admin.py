@@ -25,8 +25,9 @@ def networks_page(
     user: Annotated[User, Depends(get_current_user)],
 ) -> HTMLResponse:
     return templates.TemplateResponse(
+        request,
         "admin/networks.html",
-        {"request": request, "user": user, "networks": visible_networks(db, user)},
+        {"user": user, "networks": visible_networks(db, user)},
     )
 
 
@@ -44,9 +45,9 @@ def network_detail(
     if not network:
         raise HTTPException(status_code=404, detail="Сетка не найдена")
     return templates.TemplateResponse(
+        request,
         "admin/network_detail.html",
         {
-            "request": request,
             "user": user,
             "network": network,
             "resource_types": list(ResourceType),
@@ -120,7 +121,7 @@ def users_page(
     users = list(db.scalars(select(User).options(selectinload(User.network)).order_by(User.login)))
     networks = list(db.scalars(select(Network).order_by(Network.name)))
     return templates.TemplateResponse(
-        "admin/users.html", {"request": request, "user": user, "users": users, "networks": networks}
+        request, "admin/users.html", {"user": user, "users": users, "networks": networks}
     )
 
 
@@ -152,9 +153,9 @@ def create_user(
         users = list(db.scalars(select(User).options(selectinload(User.network)).order_by(User.login)))
         networks = list(db.scalars(select(Network).order_by(Network.name)))
         return templates.TemplateResponse(
+            request,
             "admin/users.html",
             {
-                "request": request,
                 "user": user,
                 "users": users,
                 "networks": networks,
@@ -172,9 +173,9 @@ async def _network_form_with_error(
         select(Network).options(selectinload(Network.resources)).where(Network.id == network_id)
     )
     return templates.TemplateResponse(
+        request,
         "admin/network_detail.html",
         {
-            "request": request,
             "user": user,
             "network": network,
             "resource_types": list(ResourceType),

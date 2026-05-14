@@ -35,7 +35,7 @@ def dashboard(
         stmt = stmt.where(Report.network_id == user.network_id)
     reports = list(db.scalars(stmt))
     return templates.TemplateResponse(
-        "dashboard.html", {"request": request, "user": user, "reports": reports}
+        request, "dashboard.html", {"user": user, "reports": reports}
     )
 
 
@@ -46,8 +46,9 @@ def new_report_page(
     user: Annotated[User, Depends(get_current_user)],
 ) -> HTMLResponse:
     return templates.TemplateResponse(
+        request,
         "reports/new.html",
-        {"request": request, "user": user, "networks": visible_networks(db, user)},
+        {"user": user, "networks": visible_networks(db, user)},
     )
 
 
@@ -67,9 +68,9 @@ def create_report(
     except InvalidVkPostUrl as exc:
         networks = visible_networks(db, user)
         return templates.TemplateResponse(
+            request,
             "reports/new.html",
             {
-                "request": request,
                 "user": user,
                 "networks": networks,
                 "error": str(exc),
@@ -110,7 +111,7 @@ def report_page(
         raise HTTPException(status_code=404, detail="Отчёт не найден")
     ensure_network_access(report.network_id, user)
     return templates.TemplateResponse(
-        "reports/detail.html", {"request": request, "user": user, "report": report}
+        request, "reports/detail.html", {"user": user, "report": report}
     )
 
 

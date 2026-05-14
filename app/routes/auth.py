@@ -16,7 +16,7 @@ templates = Jinja2Templates(directory="app/templates")
 
 @router.get("/login", response_class=HTMLResponse)
 def login_page(request: Request) -> HTMLResponse:
-    return templates.TemplateResponse("login.html", {"request": request})
+    return templates.TemplateResponse(request, "login.html")
 
 
 @router.post("/login")
@@ -29,8 +29,9 @@ def login(
     user = db.scalar(select(User).where(User.login == login.strip()))
     if not user or not verify_password(password, user.password_hash):
         return templates.TemplateResponse(
+            request,
             "login.html",
-            {"request": request, "error": "Неверный логин или пароль"},
+            {"error": "Неверный логин или пароль"},
             status_code=400,
         )
     request.session["user_id"] = str(user.id)
