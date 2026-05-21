@@ -8,6 +8,8 @@ from app.db import SessionLocal
 from app.models import Report, ReportRow, ReportStatus, Resource
 from app.services.vk_client import VkApiError, VkClient, vk_ts_to_dt
 
+INACCESSIBLE_VK_ERROR_CODES = {15, 18, 30}
+
 
 async def find_reposts(report_id: uuid.UUID) -> None:
     client = VkClient()
@@ -36,7 +38,7 @@ async def find_reposts(report_id: uuid.UUID) -> None:
                 try:
                     posts = await client.wall_get(resource.vk_owner_id)
                 except VkApiError as exc:
-                    if exc.code in {15, 30}:
+                    if exc.code in INACCESSIBLE_VK_ERROR_CODES:
                         continue
                     raise
 
@@ -93,12 +95,18 @@ async def find_reposts(report_id: uuid.UUID) -> None:
 
 
 async def fetch_followers(client: VkClient, resource: Resource) -> int:
-    if resource.vk_owner_id < 0:
-        info = await client.group_info(resource.vk_owner_id)
-        if info.get("name"):
-            resource.display_name = info["name"]
-        return int(info.get("members_count") or 0)
-    info = await client.user_info(resource.vk_owner_id)
+    try:
+        if resource.vk_owner_id < 0:
+            info = await client.group_info(resource.vk_owner_id)
+            if info.get("name"):
+                resource.display_name = info["name"]
+            return int(info.get("members_count") or 0)
+        info = await client.user_info(resource.vk_owner_id)
+    except VkApiError as exc:
+        if exc.code in INACCESSIBLE_VK_ERROR_CODES:
+            return 0
+        raise
+
     full_name = " ".join(part for part in [info.get("first_name"), info.get("last_name")] if part)
     if full_name:
         resource.display_name = full_name
