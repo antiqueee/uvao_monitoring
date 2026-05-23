@@ -45,7 +45,7 @@ async def find_reposts(report_id: uuid.UUID) -> None:
                 for post in posts:
                     post_date = vk_ts_to_dt(post["date"])
                     if post_date < report.source_date:
-                        break
+                        continue
                     if post_date > window_end:
                         continue
                     copy_history = post.get("copy_history") or []
