@@ -67,10 +67,9 @@ def create_report(
     db: Annotated[Session, Depends(get_db)],
     user: Annotated[User, Depends(get_current_user)],
     source_url: Annotated[str, Form()],
-    network_id: Annotated[uuid.UUID, Form()],
+    network_id: Annotated[str, Form()],
     infopovod_title: Annotated[str, Form()],
 ) -> Response:
-    ensure_network_access(network_id, user)
     try:
         owner_id, post_id = parse_vk_post_url(source_url)
     except InvalidVkPostUrl as exc:
@@ -84,23 +83,47 @@ def create_report(
                 "error": str(exc),
                 "source_url": source_url,
                 "infopovod_title": infopovod_title,
+                "selected_network_id": network_id,
             },
             status_code=400,
         )
 
-    report = Report(
-        created_by=user.id,
-        network_id=network_id,
-        source_url=source_url.strip(),
-        source_owner_id=owner_id,
-        source_post_id=post_id,
-        infopovod_title=infopovod_title.strip()[:512],
-        status=ReportStatus.pending,
-    )
-    db.add(report)
+    if network_id == "all":
+        if user.role != UserRole.admin:
+            raise HTTPException(status_code=403, detail="Недостаточно прав")
+        networks = visible_networks(db, user)
+    else:
+        try:
+            selected_network_id = uuid.UUID(network_id)
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail="Некорректная сетка") from exc
+        ensure_network_access(selected_network_id, user)
+        networks = visible_networks(db, user)
+        networks = [network for network in networks if network.id == selected_network_id]
+
+    if not networks:
+        raise HTTPException(status_code=404, detail="Сетка не найдена")
+
+    reports = [
+        Report(
+            created_by=user.id,
+            network_id=network.id,
+            source_url=source_url.strip(),
+            source_owner_id=owner_id,
+            source_post_id=post_id,
+            infopovod_title=infopovod_title.strip()[:512],
+            status=ReportStatus.pending,
+        )
+        for network in networks
+    ]
+    db.add_all(reports)
     db.commit()
-    background_tasks.add_task(find_reposts, report.id)
-    return RedirectResponse(f"/reports/{report.id}", status_code=303)
+    for report in reports:
+        background_tasks.add_task(find_reposts, report.id)
+
+    if len(reports) > 1:
+        return RedirectResponse("/", status_code=303)
+    return RedirectResponse(f"/reports/{reports[0].id}", status_code=303)
 
 
 @router.get("/reports/{report_id}", response_class=HTMLResponse)

@@ -20,8 +20,11 @@
         <input type="hidden" name="network_id" value="{{ networks[0].id }}">
       {% else %}
         <select class="input" id="network_id" name="network_id" required>
+          {% if user.role.value == "admin" %}
+            <option value="all"{% if selected_network_id == "all" %} selected{% endif %}>Все районы</option>
+          {% endif %}
           {% for network in networks %}
-            <option value="{{ network.id }}">{{ network.name }}</option>
+            <option value="{{ network.id }}"{% if selected_network_id == network.id|string %} selected{% endif %}>{{ network.name }}</option>
           {% endfor %}
         </select>
       {% endif %}
