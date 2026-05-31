@@ -59,10 +59,9 @@ def dashboard(
         select(Report)
         .options(joinedload(Report.network))
         .order_by(desc(Report.created_at))
-        .limit(20)
     )
     if user.role != UserRole.admin:
-        stmt = stmt.where(Report.network_id == user.network_id)
+        stmt = stmt.where(Report.network_id == user.network_id).limit(20)
     reports = list(db.scalars(stmt))
     dashboard_items: list[dict[str, object]] = []
     seen_batch_ids: set[uuid.UUID] = set()
@@ -91,6 +90,8 @@ def dashboard(
                     "status": report.status,
                 }
             )
+        if len(dashboard_items) == 20:
+            break
     return templates.TemplateResponse(
         request, "dashboard.html", {"user": user, "items": dashboard_items}
     )
