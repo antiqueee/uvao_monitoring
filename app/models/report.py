@@ -26,6 +26,7 @@ class Report(Base):
     network_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("networks.id"), nullable=False, index=True
     )
+    batch_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), index=True)
     source_url: Mapped[str] = mapped_column(Text, nullable=False)
     source_owner_id: Mapped[int] = mapped_column(BigInteger, nullable=False)
     source_post_id: Mapped[int] = mapped_column(BigInteger, nullable=False)

@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block title %}Сводный отчёт{% endblock %}
+{% block content %}
+  <a class="breadcrumb" href="/">← К списку отчётов</a>
+
+  {% if status.value in ["pending", "running"] %}
+    <div class="center-state" hx-get="/report-batches/{{ batch_id }}/status" hx-trigger="every 2s" hx-swap="none">
+      <div class="spinner"></div>
+      <h1 style="font-size: 20px; margin-bottom: 6px;">Собираем данные</h1>
+      <div class="page-meta" style="margin-bottom: 24px;">Проверяем ресурсы всех районов</div>
+      <script>
+        document.body.addEventListener("htmx:afterRequest", function (event) {
+          try {
+            const data = JSON.parse(event.detail.xhr.responseText);
+            if (data.status === "done" || data.status === "failed") window.location.reload();
+          } catch (_) {}
+        });
+      </script>
+    </div>
+  {% else %}
+    <div class="page-header">
+      <h1>{{ reports[0].infopovod_title }}</h1>
+      <a class="btn" href="/report-batches/{{ batch_id }}/export.xlsx">
+        <i class="ti ti-download" aria-hidden="true"></i>
+        Общий Excel
+      </a>
+    </div>
+    <div class="page-meta">
+      Все районы · {{ reports[0].created_at.strftime("%d.%m.%Y") }} ·
+      <a class="muted" href="{{ reports[0].source_url }}" target="_blank" rel="noreferrer">{{ reports[0].source_url }}</a>
+    </div>
+
+    <table class="tbl">
+      <thead>
+        <tr>
+          <th>Район</th>
+          <th style="width: 100px;">Статус</th>
+          <th class="right" style="width: 110px;">Репосты</th>
+          <th style="width: 120px;"></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for report in reports %}
+          <tr>
+            <td>{{ report.network.name }}</td>
+            <td>
+              {% if report.status.value == "done" %}
+                <span class="status"><span class="dot status-ok"></span>готов</span>
+              {% elif report.status.value == "failed" %}
+                <span class="status"><span class="dot status-err"></span>ошибка</span>
+              {% else %}
+                <span class="status"><span class="dot status-off"></span>{{ report.status.value }}</span>
+              {% endif %}
+            </td>
+            <td class="right">{{ report.rows|length }}</td>
+            <td class="right"><a class="muted" href="/reports/{{ report.id }}">Открыть</a></td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    {% if status.value == "failed" %}
+      <p class="error" style="margin-top: 18px;">Часть районов завершилась с ошибкой. Общий Excel содержит успешно собранные строки.</p>
+    {% endif %}
+  {% endif %}
+{% endblock %}

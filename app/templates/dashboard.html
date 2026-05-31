@@ -26,21 +26,21 @@
       </tr>
     </thead>
     <tbody>
-      {% for report in reports %}
+      {% for item in items %}
         <tr>
-          <td class="muted">{{ report.created_at.strftime("%d.%m") }}</td>
+          <td class="muted">{{ item.created_at.strftime("%d.%m") }}</td>
           <td>
-            <a href="/reports/{{ report.id }}">{{ report.infopovod_title }}</a>
-            <div class="muted2">{{ report.created_at.strftime("%Y %H:%M") }}</div>
+            <a href="{{ item.url }}">{{ item.title }}</a>
+            <div class="muted2">{{ item.created_at.strftime("%Y %H:%M") }}</div>
           </td>
-          <td class="muted">{{ report.network.name }}</td>
+          <td class="muted">{{ item.network_name }}</td>
           <td>
-            {% if report.status.value == "done" %}
+            {% if item.status.value == "done" %}
               <span class="status"><span class="dot status-ok"></span>готов</span>
-            {% elif report.status.value == "failed" %}
+            {% elif item.status.value == "failed" %}
               <span class="status"><span class="dot status-err"></span>ошибка</span>
             {% else %}
-              <span class="status"><span class="dot status-off"></span>{{ report.status.value }}</span>
+              <span class="status"><span class="dot status-off"></span>{{ item.status.value }}</span>
             {% endif %}
           </td>
         </tr>
