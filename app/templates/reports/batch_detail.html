@@ -19,20 +19,26 @@
     </div>
   {% else %}
     <div class="page-header">
-      <h1>{{ reports[0].infopovod_title }}</h1>
+      <h1>
+        {% if posts|length == 1 %}{{ posts[0].title }}{% else %}Сводный отчёт{% endif %}
+      </h1>
       <a class="btn" href="/report-batches/{{ batch_id }}/export.xlsx">
         <i class="ti ti-download" aria-hidden="true"></i>
         Общий Excel
       </a>
     </div>
     <div class="page-meta">
-      Все районы · {{ reports[0].created_at.strftime("%d.%m.%Y") }} ·
-      <a class="muted" href="{{ reports[0].source_url }}" target="_blank" rel="noreferrer">{{ reports[0].source_url }}</a>
+      Все районы · {{ posts|length }} {{ "пост" if posts|length == 1 else "постов" }} ·
+      {{ reports[0].created_at.strftime("%d.%m.%Y") }}
+      {% if posts|length == 1 %}
+        · <a class="muted" href="{{ posts[0].source_url }}" target="_blank" rel="noreferrer">{{ posts[0].source_url }}</a>
+      {% endif %}
     </div>
 
     <table class="tbl">
       <thead>
         <tr>
+          {% if posts|length > 1 %}<th>Инфоповод</th>{% endif %}
           <th>Район</th>
           <th style="width: 100px;">Статус</th>
           <th class="right" style="width: 110px;">Репосты</th>
@@ -42,6 +48,11 @@
       <tbody>
         {% for report in reports %}
           <tr>
+            {% if posts|length > 1 %}
+              <td>
+                <a class="muted" href="{{ report.source_url }}" target="_blank" rel="noreferrer">{{ report.infopovod_title }}</a>
+              </td>
+            {% endif %}
             <td>{{ report.network.name }}</td>
             <td>
               {% if report.status.value == "done" %}

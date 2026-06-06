@@ -253,9 +253,44 @@ textarea {
   color: var(--text-primary);
 }
 
-textarea.input {
-  min-height: 120px;
-  resize: vertical;
+.post-block {
+  position: relative;
+  padding: 18px 18px 2px;
+  margin-bottom: 18px;
+  border: 0.5px solid var(--border-medium);
+  border-radius: var(--radius-sm);
+  background: var(--bg-chrome);
+}
+
+.post-block-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.post-block-title {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-secondary);
+}
+
+.post-remove {
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+  padding: 4px 6px;
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+}
+
+.post-remove:hover {
+  background: var(--bg-surface);
+  color: var(--accent);
 }
 
 .input:focus {

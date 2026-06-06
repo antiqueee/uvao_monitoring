@@ -1,5 +1,6 @@
 import uuid
 from datetime import datetime
+from itertools import zip_longest
 from urllib.parse import quote
 from typing import Annotated
 
@@ -11,7 +12,7 @@ from sqlalchemy.orm import Session, joinedload, selectinload
 
 from app.db import get_db
 from app.deps import ensure_network_access, get_current_user, require_admin, visible_networks
-from app.models import Report, ReportRow, ReportStatus, User, UserRole
+from app.models import Network, Report, ReportRow, ReportStatus, User, UserRole
 from app.services.excel_export import build_batch_workbook, build_report_workbook
 from app.services.repost_finder import find_reposts
 from app.services.url_parser import InvalidVkPostUrl, parse_vk_post_url
@@ -20,14 +21,34 @@ router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
 
 
-def parse_source_posts(source_url: str, source_urls: str, fallback_title: str) -> list[dict[str, str]]:
-    raw_lines = [line.strip() for line in source_urls.splitlines() if line.strip()]
-    if not raw_lines and source_url.strip():
-        raw_lines = [source_url.strip()]
+def zip_post_entries(source_urls: list[str], titles: list[str]) -> list[dict[str, str]]:
+    """Pair up the per-post link/title fields, keeping only filled-in blocks."""
+    entries: list[dict[str, str]] = []
+    for url, title in zip_longest(source_urls, titles, fillvalue=""):
+        url = (url or "").strip()
+        title = (title or "").strip()
+        if not url and not title:
+            continue
+        entries.append({"url": url, "title": title})
+    return entries
+
+
+def build_source_posts(source_urls: list[str], titles: list[str]) -> list[dict[str, str]]:
     posts: list[dict[str, str]] = []
-    for line in raw_lines:
-        url, _, title = line.partition("|")
-        posts.append({"url": url.strip(), "title": (title.strip() or fallback_title.strip())[:512]})
+    for entry in zip_post_entries(source_urls, titles):
+        if not entry["url"]:
+            raise InvalidVkPostUrl("укажите ссылку на пост ВК")
+        if not entry["title"]:
+            raise InvalidVkPostUrl("укажите наименование инфоповода")
+        owner_id, post_id = parse_vk_post_url(entry["url"])
+        posts.append(
+            {
+                "url": entry["url"],
+                "title": entry["title"][:512],
+                "owner_id": str(owner_id),
+                "post_id": str(post_id),
+            }
+        )
     if not posts:
         raise InvalidVkPostUrl("укажите ссылку на пост ВК")
     return posts
@@ -52,12 +73,13 @@ def _load_batch_reports(db: Session, batch_id: uuid.UUID) -> list[Report]:
     return list(
         db.scalars(
             select(Report)
+            .join(Network, Report.network_id == Network.id)
             .options(
                 joinedload(Report.network),
                 selectinload(Report.rows).joinedload(ReportRow.resource),
             )
             .where(Report.batch_id == batch_id)
-            .order_by(Report.created_at)
+            .order_by(Report.source_owner_id, Report.source_post_id, Network.name)
         )
     )
 
@@ -84,11 +106,15 @@ def dashboard(
                 continue
             seen_batch_ids.add(report.batch_id)
             batch_reports = [item for item in reports if item.batch_id == report.batch_id]
+            post_count = len({(item.source_owner_id, item.source_post_id) for item in batch_reports})
+            title = report.infopovod_title
+            if post_count > 1:
+                title = f"{report.infopovod_title} (+{post_count - 1} постов)"
             dashboard_items.append(
                 {
                     "url": f"/report-batches/{report.batch_id}",
                     "created_at": report.created_at,
-                    "title": report.infopovod_title,
+                    "title": title,
                     "network_name": "Все районы",
                     "status": batch_status(batch_reports),
                 }
@@ -129,20 +155,16 @@ def create_report(
     request: Request,
     db: Annotated[Session, Depends(get_db)],
     user: Annotated[User, Depends(get_current_user)],
-    source_url: Annotated[str, Form()],
     network_id: Annotated[str, Form()],
-    infopovod_title: Annotated[str, Form()],
-    source_urls: Annotated[str, Form()] = "",
+    source_url: Annotated[list[str], Form()] = [],
+    infopovod_title: Annotated[list[str], Form()] = [],
 ) -> Response:
-    if source_urls.strip() and user.role != UserRole.admin:
+    entries = zip_post_entries(source_url, infopovod_title)
+    if len(entries) > 1 and user.role != UserRole.admin:
         raise HTTPException(status_code=403, detail="Недостаточно прав")
 
     try:
-        source_posts = parse_source_posts(source_url, source_urls, infopovod_title)
-        for post in source_posts:
-            owner_id, post_id = parse_vk_post_url(post["url"])
-            post["owner_id"] = str(owner_id)
-            post["post_id"] = str(post_id)
+        source_posts = build_source_posts(source_url, infopovod_title)
     except InvalidVkPostUrl as exc:
         networks = visible_networks(db, user)
         return templates.TemplateResponse(
@@ -152,9 +174,7 @@ def create_report(
                 "user": user,
                 "networks": networks,
                 "error": str(exc),
-                "source_url": source_url,
-                "source_urls": source_urls,
-                "infopovod_title": infopovod_title,
+                "entries": entries or [{"url": "", "title": ""}],
                 "selected_network_id": network_id,
             },
             status_code=400,
@@ -176,34 +196,30 @@ def create_report(
     if not networks:
         raise HTTPException(status_code=404, detail="Сетка не найдена")
 
-    reports: list[Report] = []
-    batch_ids: list[uuid.UUID] = []
-    for source_post in source_posts:
-        batch_id = uuid.uuid4() if len(networks) > 1 else None
-        if batch_id:
-            batch_ids.append(batch_id)
-        reports.extend(
-            Report(
-                created_by=user.id,
-                network_id=network.id,
-                batch_id=batch_id,
-                source_url=source_post["url"],
-                source_owner_id=int(source_post["owner_id"]),
-                source_post_id=int(source_post["post_id"]),
-                infopovod_title=source_post["title"],
-                status=ReportStatus.pending,
-            )
-            for network in networks
+    # One shared batch groups every post across every district into a single
+    # combined report; only a lone post for a lone district stays standalone.
+    batch_id = uuid.uuid4() if len(source_posts) * len(networks) > 1 else None
+    reports = [
+        Report(
+            created_by=user.id,
+            network_id=network.id,
+            batch_id=batch_id,
+            source_url=source_post["url"],
+            source_owner_id=int(source_post["owner_id"]),
+            source_post_id=int(source_post["post_id"]),
+            infopovod_title=source_post["title"],
+            status=ReportStatus.pending,
         )
+        for source_post in source_posts
+        for network in networks
+    ]
     db.add_all(reports)
     db.commit()
     for report in reports:
         background_tasks.add_task(find_reposts, report.id)
 
-    if len(batch_ids) == 1:
-        return RedirectResponse(f"/report-batches/{batch_ids[0]}", status_code=303)
-    if len(batch_ids) > 1:
-        return RedirectResponse("/", status_code=303)
+    if batch_id:
+        return RedirectResponse(f"/report-batches/{batch_id}", status_code=303)
     return RedirectResponse(f"/reports/{reports[0].id}", status_code=303)
 
 
@@ -217,10 +233,24 @@ def batch_report_page(
     reports = _load_batch_reports(db, batch_id)
     if not reports:
         raise HTTPException(status_code=404, detail="Сводный отчёт не найден")
+    posts: list[dict[str, str]] = []
+    seen_posts: set[tuple[int, int]] = set()
+    for report in reports:
+        key = (report.source_owner_id, report.source_post_id)
+        if key in seen_posts:
+            continue
+        seen_posts.add(key)
+        posts.append({"title": report.infopovod_title, "source_url": report.source_url})
     return templates.TemplateResponse(
         request,
         "reports/batch_detail.html",
-        {"user": user, "reports": reports, "batch_id": batch_id, "status": batch_status(reports)},
+        {
+            "user": user,
+            "reports": reports,
+            "posts": posts,
+            "batch_id": batch_id,
+            "status": batch_status(reports),
+        },
     )
 
 
