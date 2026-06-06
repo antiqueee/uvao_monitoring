@@ -20,6 +20,19 @@ router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
 
 
+def parse_source_posts(source_url: str, source_urls: str, fallback_title: str) -> list[dict[str, str]]:
+    raw_lines = [line.strip() for line in source_urls.splitlines() if line.strip()]
+    if not raw_lines and source_url.strip():
+        raw_lines = [source_url.strip()]
+    posts: list[dict[str, str]] = []
+    for line in raw_lines:
+        url, _, title = line.partition("|")
+        posts.append({"url": url.strip(), "title": (title.strip() or fallback_title.strip())[:512]})
+    if not posts:
+        raise InvalidVkPostUrl("укажите ссылку на пост ВК")
+    return posts
+
+
 def export_content_disposition(filename: str) -> str:
     ascii_filename = filename.encode("ascii", "ignore").decode("ascii").replace('"', "")
     ascii_filename = ascii_filename or "report.xlsx"
@@ -119,9 +132,17 @@ def create_report(
     source_url: Annotated[str, Form()],
     network_id: Annotated[str, Form()],
     infopovod_title: Annotated[str, Form()],
+    source_urls: Annotated[str, Form()] = "",
 ) -> Response:
+    if source_urls.strip() and user.role != UserRole.admin:
+        raise HTTPException(status_code=403, detail="Недостаточно прав")
+
     try:
-        owner_id, post_id = parse_vk_post_url(source_url)
+        source_posts = parse_source_posts(source_url, source_urls, infopovod_title)
+        for post in source_posts:
+            owner_id, post_id = parse_vk_post_url(post["url"])
+            post["owner_id"] = str(owner_id)
+            post["post_id"] = str(post_id)
     except InvalidVkPostUrl as exc:
         networks = visible_networks(db, user)
         return templates.TemplateResponse(
@@ -132,6 +153,7 @@ def create_report(
                 "networks": networks,
                 "error": str(exc),
                 "source_url": source_url,
+                "source_urls": source_urls,
                 "infopovod_title": infopovod_title,
                 "selected_network_id": network_id,
             },
@@ -154,27 +176,34 @@ def create_report(
     if not networks:
         raise HTTPException(status_code=404, detail="Сетка не найдена")
 
-    batch_id = uuid.uuid4() if len(networks) > 1 else None
-    reports = [
-        Report(
-            created_by=user.id,
-            network_id=network.id,
-            batch_id=batch_id,
-            source_url=source_url.strip(),
-            source_owner_id=owner_id,
-            source_post_id=post_id,
-            infopovod_title=infopovod_title.strip()[:512],
-            status=ReportStatus.pending,
+    reports: list[Report] = []
+    batch_ids: list[uuid.UUID] = []
+    for source_post in source_posts:
+        batch_id = uuid.uuid4() if len(networks) > 1 else None
+        if batch_id:
+            batch_ids.append(batch_id)
+        reports.extend(
+            Report(
+                created_by=user.id,
+                network_id=network.id,
+                batch_id=batch_id,
+                source_url=source_post["url"],
+                source_owner_id=int(source_post["owner_id"]),
+                source_post_id=int(source_post["post_id"]),
+                infopovod_title=source_post["title"],
+                status=ReportStatus.pending,
+            )
+            for network in networks
         )
-        for network in networks
-    ]
     db.add_all(reports)
     db.commit()
     for report in reports:
         background_tasks.add_task(find_reposts, report.id)
 
-    if batch_id:
-        return RedirectResponse(f"/report-batches/{batch_id}", status_code=303)
+    if len(batch_ids) == 1:
+        return RedirectResponse(f"/report-batches/{batch_ids[0]}", status_code=303)
+    if len(batch_ids) > 1:
+        return RedirectResponse("/", status_code=303)
     return RedirectResponse(f"/reports/{reports[0].id}", status_code=303)
 
 

@@ -71,7 +71,8 @@ h2 {
 
 button,
 input,
-select {
+select,
+textarea {
   font: inherit;
 }
 
@@ -250,6 +251,11 @@ select {
   border-radius: var(--radius-sm);
   background: var(--bg-surface);
   color: var(--text-primary);
+}
+
+textarea.input {
+  min-height: 120px;
+  resize: vertical;
 }
 
 .input:focus {

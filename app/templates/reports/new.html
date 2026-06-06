@@ -9,9 +9,17 @@
   <form class="form-narrow" action="/reports" method="post">
     <div class="field">
       <label class="label" for="source_url">Ссылка на первоисточник</label>
-      <input class="input" id="source_url" name="source_url" value="{{ source_url or '' }}" placeholder="https://vk.com/wall-12345_67890" required>
+      <input class="input" id="source_url" name="source_url" value="{{ source_url or '' }}" placeholder="https://vk.com/wall-12345_67890"{% if user.role.value != "admin" %} required{% endif %}>
       <div class="hint">Принимаются ссылки вида vk.com/wall...</div>
     </div>
+
+    {% if user.role.value == "admin" %}
+      <div class="field">
+        <label class="label" for="source_urls">Несколько постов</label>
+        <textarea class="input" id="source_urls" name="source_urls" rows="7" placeholder="https://vk.com/wall-12345_67890 | Заголовок">{{ source_urls or '' }}</textarea>
+        <div class="hint">Одна ссылка на строку. После символа | можно указать отдельный заголовок для строки.</div>
+      </div>
+    {% endif %}
 
     <div class="field">
       <label class="label" for="network_id">Сетка</label>
